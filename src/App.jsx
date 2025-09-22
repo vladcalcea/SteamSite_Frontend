@@ -55,8 +55,7 @@ function App() {
                             }
                         />
                         <Route path="/profile" element={<ProfilePage />} />
-                        {/* ✅ dynamic route for individual game */}
-                        <Route path="/games/:id" element={<GamePage />} />
+                        <Route path="/game/:id" element={<GamePage />} />
                     </Route>
 
                     {/* Login */}

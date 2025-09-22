@@ -10,7 +10,7 @@ const useAuthStore = create((set) => ({
     error: null,
     initialized: false, // track if checkAuth already ran
 
-    // 🔑 Login (cookie gets set by backend)
+    // Login (cookie gets set by backend)
     login: async (username, password) => {
         set({ loading: true, error: null });
         try {
@@ -34,7 +34,7 @@ const useAuthStore = create((set) => ({
         }
     },
 
-    // 🔑 Logout (cookie cleared server-side)
+    // Logout (cookie cleared server-side)
     logout: async () => {
         try {
             await fetch(`${API_URL}/api/auth/logout`, {
@@ -48,7 +48,7 @@ const useAuthStore = create((set) => ({
         }
     },
 
-    // 🔑 Check if user is authenticated (run on app load)
+    // Check if user is authenticated (run on app load)
     checkAuth: async () => {
         try {
             const res = await fetch(`${API_URL}/api/auth/me`, {

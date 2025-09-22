@@ -10,9 +10,10 @@ import {
     Switch,
     Upload,
     message,
+    Popconfirm,
 } from "antd";
 import { UploadOutlined, PlusOutlined } from "@ant-design/icons";
-import API from "../../api/axios.js"; // your axios instance
+import API from "../../api/axios.js";
 import dayjs from "dayjs";
 
 const Dashboard = () => {
@@ -22,7 +23,8 @@ const Dashboard = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editingGameId, setEditingGameId] = useState(null);
     const [form] = Form.useForm();
-    const [file, setFile] = useState(null);
+    const [file, setFile] = useState(null); // header image
+    const [backgroundFile, setBackgroundFile] = useState(null); // background image
     const [imageUrls, setImageUrls] = useState({});
     const objectUrlsRef = useRef({});
 
@@ -115,7 +117,7 @@ const Dashboard = () => {
         setLoading(true);
         try {
             let response;
-            if (file) {
+            if (file || backgroundFile) {
                 // Use FormData for file upload, all fields as strings
                 const formData = new FormData();
                 Object.entries(values).forEach(([key, value]) => {
@@ -129,7 +131,8 @@ const Dashboard = () => {
                         formData.append(key, value);
                     }
                 });
-                formData.append("headerImage", file);
+                if (file) formData.append("headerImage", file);
+                if (backgroundFile) formData.append("backgroundImage", backgroundFile);
                 if (isEditing && editingGameId) {
                     response = await API.put(
                         `/api/games/${editingGameId}`,
@@ -165,6 +168,7 @@ const Dashboard = () => {
             setIsModalVisible(false);
             form.resetFields();
             setFile(null);
+            setBackgroundFile(null);
             fetchGames();
         } catch (err) {
             console.error("handleSubmit error:", err);
@@ -174,11 +178,16 @@ const Dashboard = () => {
         }
     };
 
-    // Delete game
+    // Delete game (with confirmation and JWT from cookies)
     const handleDelete = async (id) => {
         try {
+            // Get JWT from cookies
+            const jwt = document.cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
             await API.delete(`/api/games/${id}`, {
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Authorization": jwt ? `Bearer ${jwt}` : undefined,
+                    "Content-Type": "application/json"
+                }
             });
             message.success("Game deleted successfully!");
             fetchGames();
@@ -217,9 +226,14 @@ const Dashboard = () => {
                     >
                         Edit
                     </Button>
-                    <Button danger onClick={() => handleDelete(record.gameId)}>
-                        Delete
-                    </Button>
+                    <Popconfirm
+                        title="Are you sure you want to delete this game?"
+                        onConfirm={() => handleDelete(record.gameId)}
+                        okText="Yes"
+                        cancelText="No"
+                    >
+                        <Button danger>Delete</Button>
+                    </Popconfirm>
                 </>
             ),
         },
@@ -313,8 +327,22 @@ const Dashboard = () => {
                             }}
                             fileList={file ? [file] : []}
                             onRemove={() => setFile(null)}
+                            maxCount={1}
                         >
-                            <Button icon={<UploadOutlined />}>Select Image</Button>
+                            <Button icon={<UploadOutlined />}>Select Header Image</Button>
+                        </Upload>
+                    </Form.Item>
+                    <Form.Item label="Background Image">
+                        <Upload
+                            beforeUpload={(file) => {
+                                setBackgroundFile(file);
+                                return false;
+                            }}
+                            fileList={backgroundFile ? [backgroundFile] : []}
+                            onRemove={() => setBackgroundFile(null)}
+                            maxCount={1}
+                        >
+                            <Button icon={<UploadOutlined />}>Select Background Image</Button>
                         </Upload>
                     </Form.Item>
 

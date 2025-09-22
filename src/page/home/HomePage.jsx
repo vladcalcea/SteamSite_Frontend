@@ -41,7 +41,7 @@ const HomePage = () => {
                             onClick={() => navigate(`/game/${game.gameId}`)}
                             cover={
                                 <img
-                                    src={game.headerImageUrl || "https://via.placeholder.com/400x200"}
+                                    src={game.headerImageUrl ? `${API_URL}${game.headerImageUrl}` : "https://via.placeholder.com/400x200"}
                                     alt={game.name}
                                     style={{
                                         height: "200px",

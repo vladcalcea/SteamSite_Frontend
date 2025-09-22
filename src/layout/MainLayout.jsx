@@ -61,7 +61,7 @@ const MainLayout = () => {
     const currentPath = location.pathname.substring(1) || "home";
 
     return (
-        <div style={{ display: "flex", minHeight: "100vh", width: "100%" }}>
+        <div style={{ display: "flex", minHeight: "100vh", width: "100vw" }}>
             {/* Sidebar */}
             <div
                 style={{
@@ -135,6 +135,7 @@ const MainLayout = () => {
                     flexDirection: "column",
                     backgroundColor: "#f5f5f5",
                     minWidth: 0,
+                    minHeight: "100vh",
                     overflow: "hidden"
                 }}
             >
@@ -185,8 +186,8 @@ const MainLayout = () => {
                         padding: "24px",
                         background: "#fff",
                         overflow: "auto",
-                        width: "183vh",
-                        height: "100vh"
+                        width: "100%",
+                        minHeight: 0
                     }}
                 >
                     <Outlet />
