@@ -85,6 +85,7 @@ const Dashboard = () => {
         setIsEditing(false);
         setEditingGameId(null);
         setFile(null);
+        setBackgroundFile(null);
         form.resetFields();
         setIsModalVisible(true);
     };
@@ -94,6 +95,7 @@ const Dashboard = () => {
         setIsEditing(true);
         setEditingGameId(game.gameId);
         setFile(null);
+        setBackgroundFile(null);
 
         form.setFieldsValue({
             name: game.name,
@@ -104,6 +106,7 @@ const Dashboard = () => {
             publisher: game.publisher,
             categories: game.categories,
             tags: game.tags,
+            trailerUrl: game.trailerUrl,
             releaseDate: game.releaseDate ? dayjs(game.releaseDate) : null,
             isFeatured: game.isFeatured,
             isPublished: game.isPublished,
@@ -300,6 +303,9 @@ const Dashboard = () => {
                     </Form.Item>
                     <Form.Item name="tags" label="Tags">
                         <Input />
+                    </Form.Item>
+                    <Form.Item name="trailerUrl" label="Trailer URL">
+                        <Input placeholder="Enter YouTube or video URL" />
                     </Form.Item>
                     <Form.Item name="releaseDate" label="Release Date">
                         <DatePicker style={{ width: "100%" }} />

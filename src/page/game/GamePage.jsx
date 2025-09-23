@@ -1,45 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Spin, Typography, Row, Col, Tag, Divider, Card, message } from "antd";
+import { Spin, Typography, Row, Col, Tag, Divider, message } from "antd";
 import API from "../../api/axios";
+import {
+    API_BASE_URL,
+    TITLE_GAME_NOT_FOUND,
+    MESSAGE_GAME_ADDED_SUCCESS,
+    MESSAGE_GAME_ADD_ERROR,
+    MESSAGE_ADD_NOT_IMPLEMENTED,
+    MESSAGE_UNEXPECTED_RESPONSE,
+    BUTTON_BUY_GAME,
+    BUTTON_ADD_GAME,
+    LABEL_DEVELOPER,
+    LABEL_PUBLISHER,
+    LABEL_RELEASE_DATE,
+    LABEL_PRICE,
+    LABEL_CATEGORIES,
+    LABEL_TAGS,
+    LABEL_TRAILER,
+    FALLBACK_VALUE,
+    FALLBACK_PRICE,
+    CATEGORY_TAG_COLOR,
+    TAG_COLOR,
+    contentStyle,
+    gameImageStyle,
+    buyButtonStyle,
+    addButtonStyle
+} from "./constant.js";
+import "./style.scss";
 
 const { Title, Paragraph, Text } = Typography;
-
-const overlayStyle = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    zIndex: 0,
-    background: "rgba(0,0,0,0.6)",
-};
-
-const backgroundStyle = (url) => ({
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    zIndex: -2,
-    backgroundImage: `url(${url})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    filter: "brightness(0.5) blur(0px)",
-});
-
-const contentStyle = {
-    position: "relative",
-    zIndex: 1,
-    maxWidth: 900,
-    margin: "40px auto",
-    padding: 24,
-    borderRadius: 8,
-    background: "rgba(255,255,255,0.92)",
-    color: "#222",
-    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
-};
 
 const GamePage = () => {
     const { id } = useParams();
@@ -57,112 +47,172 @@ const GamePage = () => {
         try {
             const res = await API.post("/api/profile/add", { gameId: game.gameId });
             if (res.status === 501) {
-                message.info("Add to profile is not implemented yet.");
+                message.info(MESSAGE_ADD_NOT_IMPLEMENTED);
             } else if (res.status === 200 || res.status === 201) {
-                message.success("Game added to your library!");
+                message.success(MESSAGE_GAME_ADDED_SUCCESS);
             } else {
-                message.error("Unexpected response from server.");
+                message.error(MESSAGE_UNEXPECTED_RESPONSE);
             }
         } catch (err) {
-            message.error("Failed to add game to profile");
+            message.error(MESSAGE_GAME_ADD_ERROR);
         }
     };
 
-    if (loading) return <Spin size="large" style={{ display: "block", margin: "100px auto" }} />;
-    if (!game) return <Title level={3} style={{ color: '#222' }}>Game not found</Title>;
+    const getYouTubeEmbedUrl = (url) => {
+        if (!url) return null;
 
-    // Instead of overlay/background covering the whole viewport, only cover the main content area
-    // Remove fixed positioning and use relative/absolute within the content wrapper
+        // Check if it's already an embed URL
+        if (url.includes('/embed/')) return url;
 
-    const bgUrl = game.backgroundImage ? `http://localhost:5012${game.backgroundImage}` : null;
+        // Extract video ID from various YouTube URL formats
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+
+        if (match && match[2].length === 11) {
+            return `https://www.youtube.com/embed/${match[2]}`;
+        }
+
+        // If not a YouTube URL, return as is (for other video URLs)
+        return url;
+    };
+
+    if (loading) {
+        return <Spin size="large" className="loading-spinner" />;
+    }
+
+    if (!game) {
+        return <Title level={3} className="not-found-title">{TITLE_GAME_NOT_FOUND}</Title>;
+    }
+
+    const bgUrl = game.backgroundImage ? `${API_BASE_URL}${game.backgroundImage}` : null;
+    const headerImageUrl = game.headerImageUrl ? `${API_BASE_URL}${game.headerImageUrl}` : null;
 
     return (
-        <div style={{ minHeight: "100vh", position: "relative", display: "flex", justifyContent: "center" }}>
-            <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-                <div style={{ position: "relative", width: "100%", maxWidth: 900, margin: "40px 0" }}>
+        <div className="game-page">
+            <div className="game-page__container">
+                <div className="game-page__wrapper">
                     {bgUrl && (
-                        <div style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            zIndex: 0,
-                            backgroundImage: `url(${bgUrl})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                            backgroundRepeat: "no-repeat",
-                            filter: "brightness(0.5) blur(0px)"
-                        }} />
+                        <div
+                            className="game-page__background"
+                            style={{ backgroundImage: `url(${bgUrl})` }}
+                        />
                     )}
-                    <div style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        zIndex: 1,
-                        background: "rgba(0,0,0,0.6)"
-                    }} />
-                    <div style={{ ...contentStyle, position: "relative", zIndex: 2, background: "rgba(255,255,255,0.92)" }}>
-                        {game.headerImageUrl && (
+                    <div className="game-page__overlay" />
+                    <div className="game-page__content" style={contentStyle}>
+                        {game.trailerUrl && (
+                            <div style={{ marginBottom: 24 }}>
+                                <Title level={4} className="game-page__title">
+                                    {LABEL_TRAILER}
+                                </Title>
+                                <iframe
+                                    className="game-page__trailer"
+                                    src={getYouTubeEmbedUrl(game.trailerUrl)}
+                                    title="Game Trailer"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </div>
+                        )}
+
+                        {headerImageUrl && (
                             <img
-                                src={`http://localhost:5012${game.headerImageUrl}`}
+                                src={headerImageUrl}
                                 alt={game.name}
-                                style={{ width: "100%", maxHeight: 350, objectFit: "cover", borderRadius: 8, marginBottom: 24, boxShadow: "0 2px 16px rgba(0,0,0,0.12)" }}
+                                className="game-page__header-image"
+                                style={gameImageStyle}
                             />
                         )}
                         <Row gutter={[24, 24]}>
                             <Col xs={24} md={16}>
-                                <Title level={2} style={{ color: "#222" }}>{game.name}</Title>
-                                <Paragraph type="secondary" style={{ color: "#444" }}>{game.shortDescription}</Paragraph>
+                                <Title level={2} className="game-page__title">
+                                    {game.name}
+                                </Title>
+
+                                <Paragraph className="game-page__description">
+                                    {game.shortDescription}
+                                </Paragraph>
+
                                 <Divider />
-                                <Paragraph style={{ color: "#222" }}>{game.detailedDescription}</Paragraph>
+
+                                <Paragraph className="game-page__description--detailed">
+                                    {game.detailedDescription}
+                                </Paragraph>
+
                                 <Divider />
-                                <Text strong style={{ color: "#222" }}>Developer:</Text> {game.developer || "-"} <br />
-                                <Text strong style={{ color: "#222" }}>Publisher:</Text> {game.publisher || "-"} <br />
-                                <Text strong style={{ color: "#222" }}>Release Date:</Text> {game.releaseDate ? new Date(game.releaseDate).toLocaleDateString() : "-"} <br />
-                                <Text strong style={{ color: "#222" }}>Price:</Text> {game.price ? `$${game.price}` : "Free"} <br />
+
+                                <div className="game-page__info">
+                                    <Text className="game-page__info-label">{LABEL_DEVELOPER}</Text>{" "}
+                                    <span className="game-page__info-value">
+                                        {game.developer || FALLBACK_VALUE}
+                                    </span>
+                                </div>
+
+                                <div className="game-page__info">
+                                    <Text className="game-page__info-label">{LABEL_PUBLISHER}</Text>{" "}
+                                    <span className="game-page__info-value">
+                                        {game.publisher || FALLBACK_VALUE}
+                                    </span>
+                                </div>
+
+                                <div className="game-page__info">
+                                    <Text className="game-page__info-label">{LABEL_RELEASE_DATE}</Text>{" "}
+                                    <span className="game-page__info-value">
+                                        {game.releaseDate
+                                            ? new Date(game.releaseDate).toLocaleDateString()
+                                            : FALLBACK_VALUE
+                                        }
+                                    </span>
+                                </div>
+
+                                <div className="game-page__info">
+                                    <Text className="game-page__info-label">{LABEL_PRICE}</Text>{" "}
+                                    <span className="game-page__info-value">
+                                        {game.price ? `$${game.price}` : FALLBACK_PRICE}
+                                    </span>
+                                </div>
+
                                 <Divider />
+
                                 {game.categories && (
-                                    <div style={{ marginBottom: 8 }}>
-                                        <Text strong style={{ color: "#222" }}>Categories: </Text>
+                                    <div className="game-page__tags">
+                                        <Text className="game-page__tags-label">{LABEL_CATEGORIES}</Text>
                                         {game.categories.split(",").map((cat) => (
-                                            <Tag key={cat.trim()} color="geekblue">{cat.trim()}</Tag>
+                                            <Tag key={cat.trim()} color={CATEGORY_TAG_COLOR}>
+                                                {cat.trim()}
+                                            </Tag>
                                         ))}
                                     </div>
                                 )}
+
                                 {game.tags && (
-                                    <div>
-                                        <Text strong style={{ color: "#222" }}>Tags: </Text>
+                                    <div className="game-page__tags">
+                                        <Text className="game-page__tags-label">{LABEL_TAGS}</Text>
                                         {game.tags.split(",").map((tag) => (
-                                            <Tag color="blue" key={tag.trim()}>{tag.trim()}</Tag>
+                                            <Tag color={TAG_COLOR} key={tag.trim()}>
+                                                {tag.trim()}
+                                            </Tag>
                                         ))}
                                     </div>
                                 )}
+
                                 <Divider />
-                                <div style={{ marginTop: 24 }}>
+
+                                <div>
                                     <button
                                         onClick={handleAddOrBuy}
-                                        style={{
-                                            background: game.price && game.price > 0 ? "#1890ff" : "#52c41a",
-                                            color: "#fff",
-                                            border: "none",
-                                            borderRadius: 6,
-                                            padding: "12px 32px",
-                                            fontSize: 18,
-                                            fontWeight: 600,
-                                            cursor: "pointer",
-                                            boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
-                                            transition: "background 0.2s"
-                                        }}
+                                        className={`game-page__button ${
+                                            game.price && game.price > 0
+                                                ? 'game-page__button--buy'
+                                                : 'game-page__button--add'
+                                        }`}
+                                        style={game.price && game.price > 0 ? buyButtonStyle : addButtonStyle}
                                     >
-                                        {game.price && game.price > 0 ? "Buy Game" : "Add Game"}
+                                        {game.price && game.price > 0 ? BUTTON_BUY_GAME : BUTTON_ADD_GAME}
                                     </button>
                                 </div>
                             </Col>
                             <Col xs={24} md={8}>
-                                {/* Optionally show background image as a card preview, but not needed since it's the page bg */}
                             </Col>
                         </Row>
                     </div>

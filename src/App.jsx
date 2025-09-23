@@ -4,7 +4,7 @@ import {
     Routes,
     Route,
     Navigate,
-} from "react-router-dom"; // ✅ use react-router-dom not react-router
+} from "react-router-dom";
 import { ConfigProvider, Spin } from "antd";
 import LoginPage from "./page/login/LoginPage";
 import Dashboard from "./page/dashboard/Dashboard.jsx";
@@ -43,9 +43,25 @@ function App() {
         <ConfigProvider theme={{ token: { colorPrimary: "#1890ff" } }}>
             <Router>
                 <Routes>
-                    {/* Layout wrapper for all main pages */}
+                    {/* Login */}
+                    <Route
+                        path="/login"
+                        element={
+                            isAuthenticated ? (
+                                <Navigate to="/home" replace />
+                            ) : (
+                                <LoginPage />
+                            )
+                        }
+                    />
+
+                    {/* All routes with MainLayout wrapper */}
                     <Route element={<MainLayout />}>
+                        {/* Public routes */}
                         <Route path="/home" element={<HomePage />} />
+                        <Route path="/game/:id" element={<GamePage />} />
+
+                        {/* Protected routes */}
                         <Route
                             path="/dashboard"
                             element={
@@ -54,21 +70,15 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        <Route path="/profile" element={<ProfilePage />} />
-                        <Route path="/game/:id" element={<GamePage />} />
+                        <Route
+                            path="/profile"
+                            element={
+                                <ProtectedRoute>
+                                    <ProfilePage />
+                                </ProtectedRoute>
+                            }
+                        />
                     </Route>
-
-                    {/* Login */}
-                    <Route
-                        path="/login"
-                        element={
-                            isAuthenticated ? (
-                                <Navigate to="/dashboard" replace />
-                            ) : (
-                                <LoginPage />
-                            )
-                        }
-                    />
 
                     {/* Default redirect */}
                     <Route path="/" element={<Navigate to="/home" replace />} />

@@ -16,24 +16,39 @@ const MainLayout = () => {
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    // 2. Get the logout function from the store
-    const { logout } = useAuthStore();
+    // Get auth store data including user role
+    const { logout, username, role, isAuthenticated } = useAuthStore();
 
-    const sidebarItems = [
-        {
-            key: "home",
-            label: "Home",
-            icon: <HomeOutlined />
-        },
-        {
-            key: "dashboard",
-            label: "Dashboard",
-            icon: <DashboardOutlined />
-        },
-        {   key: "profile",
-            label: "Profile",
-            icon: <UserOutlined /> },
-    ];
+    // Create sidebar items based on user role
+    const getSidebarItems = () => {
+        const baseItems = [
+            {
+                key: "home",
+                label: "Home",
+                icon: <HomeOutlined />
+            }
+        ];
+
+        // Only show dashboard for administrators
+        if (isAuthenticated && role === "Admin") {
+            baseItems.push({
+                key: "dashboard",
+                label: "Dashboard",
+                icon: <DashboardOutlined />
+            });
+        }
+
+        // Add profile for authenticated users
+        if (isAuthenticated) {
+            baseItems.push({
+                key: "profile",
+                label: "Profile",
+                icon: <UserOutlined />
+            });
+        }
+
+        return baseItems;
+    };
 
     const userMenuItems = [
         {
@@ -48,11 +63,10 @@ const MainLayout = () => {
         },
     ];
 
-    // 3. Update the handler to call logout and then navigate
     const handleUserMenuClick = async ({ key }) => {
         if (key === "logout") {
-            await logout();       // Call the async logout from the store
-            navigate("/login"); // Redirect after logout is complete
+            await logout();
+            navigate("/login");
         } else {
             navigate(`/${key}`);
         }
@@ -85,7 +99,7 @@ const MainLayout = () => {
                     }}
                 >
                     {!isCollapsed ? (
-                        <h3 style={{ color: "white", margin: 0 }}>Your App</h3>
+                        <h3 style={{ color: "white", margin: 0 }}>SPLURGE</h3>
                     ) : (
                         <div
                             style={{
@@ -102,7 +116,7 @@ const MainLayout = () => {
                     theme="dark"
                     mode="inline"
                     selectedKeys={[currentPath]}
-                    items={sidebarItems}
+                    items={getSidebarItems()}
                     onClick={({ key }) => {
                         navigate(`/${key}`);
                     }}
@@ -157,26 +171,44 @@ const MainLayout = () => {
                         {currentPath.charAt(0).toUpperCase() + currentPath.slice(1)}
                     </h2>
 
-                    <Dropdown
-                        menu={{
-                            items: userMenuItems,
-                            onClick: handleUserMenuClick
-                        }}
-                        placement="bottomRight"
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                cursor: "pointer",
-                                padding: "8px 12px",
-                                borderRadius: "8px"
+                    {/* Only show user menu if authenticated */}
+                    {isAuthenticated ? (
+                        <Dropdown
+                            menu={{
+                                items: userMenuItems,
+                                onClick: handleUserMenuClick
                             }}
+                            placement="bottomRight"
                         >
-                            <Avatar size={32} icon={<UserOutlined />} />
-                            <span style={{ marginLeft: 8 }}>User</span>
-                        </div>
-                    </Dropdown>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    cursor: "pointer",
+                                    padding: "8px 12px",
+                                    borderRadius: "8px"
+                                }}
+                            >
+                                <Avatar size={32} icon={<UserOutlined />} />
+                                <span style={{ marginLeft: 8 }}>
+                                    {username || "User"}
+                                    {role === "Admin" && (
+                                        <span style={{
+                                            marginLeft: 4,
+                                            fontSize: "12px",
+                                            color: "#1890ff"
+                                        }}>
+                                            (Admin)
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+                        </Dropdown>
+                    ) : (
+                        <Button type="primary" onClick={() => navigate("/login")}>
+                            Sign In
+                        </Button>
+                    )}
                 </div>
 
                 {/* Content (card style) */}
@@ -203,7 +235,7 @@ const MainLayout = () => {
                         flexShrink: 0
                     }}
                 >
-                    <span>© 2024 Your App Name. All rights reserved.</span>
+                    <span>© 2025 SPLURGE. All rights reserved.</span>
                 </div>
             </div>
         </div>
