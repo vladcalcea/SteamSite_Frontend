@@ -11,6 +11,7 @@ export const MESSAGE_UNEXPECTED_RESPONSE = "Unexpected response from server.";
 // Button Labels
 export const BUTTON_BUY_GAME = "Buy Game";
 export const BUTTON_ADD_GAME = "Add Game";
+export const BUTTON_GAME_OWNED = "Game Owned"; // 🔑 FIX: New constant
 
 // Field Labels
 export const LABEL_DEVELOPER = "Developer:";

@@ -25,6 +25,7 @@ const Dashboard = () => {
     const [form] = Form.useForm();
     const [file, setFile] = useState(null); // header image
     const [backgroundFile, setBackgroundFile] = useState(null); // background image
+    const [gameImages, setGameImages] = useState([]); // multiple game images for carousel
     const [imageUrls, setImageUrls] = useState({});
     const objectUrlsRef = useRef({});
 
@@ -86,6 +87,7 @@ const Dashboard = () => {
         setEditingGameId(null);
         setFile(null);
         setBackgroundFile(null);
+        setGameImages([]);
         form.resetFields();
         setIsModalVisible(true);
     };
@@ -96,6 +98,7 @@ const Dashboard = () => {
         setEditingGameId(game.gameId);
         setFile(null);
         setBackgroundFile(null);
+        setGameImages([]);
 
         form.setFieldsValue({
             name: game.name,
@@ -136,6 +139,11 @@ const Dashboard = () => {
                 });
                 if (file) formData.append("headerImage", file);
                 if (backgroundFile) formData.append("backgroundImage", backgroundFile);
+
+                // Add multiple game images for carousel
+                gameImages.forEach((image, index) => {
+                    formData.append("gameImages", image);
+                });
                 if (isEditing && editingGameId) {
                     response = await API.put(
                         `/api/games/${editingGameId}`,
@@ -172,6 +180,7 @@ const Dashboard = () => {
             form.resetFields();
             setFile(null);
             setBackgroundFile(null);
+            setGameImages([]);
             fetchGames();
         } catch (err) {
             console.error("handleSubmit error:", err);
@@ -349,6 +358,23 @@ const Dashboard = () => {
                             maxCount={1}
                         >
                             <Button icon={<UploadOutlined />}>Select Background Image</Button>
+                        </Upload>
+                    </Form.Item>
+
+                    <Form.Item label="Game Images (Carousel)">
+                        <Upload
+                            beforeUpload={(file) => {
+                                setGameImages(prev => [...prev, file]);
+                                return false;
+                            }}
+                            fileList={gameImages}
+                            onRemove={(file) => {
+                                setGameImages(prev => prev.filter(img => img.uid !== file.uid));
+                            }}
+                            multiple
+                            maxCount={10}
+                        >
+                            <Button icon={<UploadOutlined />}>Select Game Images</Button>
                         </Upload>
                     </Form.Item>
 

@@ -14,6 +14,8 @@ import MainLayout from "./layout/MainLayout.jsx";
 import HomePage from "./page/home/HomePage.jsx";
 import ProfilePage from "./page/profile/ProfilePage.jsx";
 import GamePage from "./page/game/GamePage.jsx";
+import FriendsPage from "./page/friends/FriendsPage.jsx";
+
 
 function App() {
     const { isAuthenticated, initialized, checkAuth } = useAuthStore();
@@ -60,6 +62,7 @@ function App() {
                         {/* Public routes */}
                         <Route path="/home" element={<HomePage />} />
                         <Route path="/game/:id" element={<GamePage />} />
+                        <Route path="/friends" element={<FriendsPage />} />
 
                         {/* Protected routes */}
                         <Route
@@ -78,6 +81,7 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
+                        <Route path="/profile/:username" element={<ProfilePage />} />
                     </Route>
 
                     {/* Default redirect */}

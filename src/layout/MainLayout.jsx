@@ -16,10 +16,8 @@ const MainLayout = () => {
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    // Get auth store data including user role
     const { logout, username, role, isAuthenticated } = useAuthStore();
 
-    // Create sidebar items based on user role
     const getSidebarItems = () => {
         const baseItems = [
             {
@@ -29,7 +27,6 @@ const MainLayout = () => {
             }
         ];
 
-        // Only show dashboard for administrators
         if (isAuthenticated && role === "Admin") {
             baseItems.push({
                 key: "dashboard",
@@ -38,29 +35,27 @@ const MainLayout = () => {
             });
         }
 
-        // Add profile for authenticated users
         if (isAuthenticated) {
-            baseItems.push({
-                key: "profile",
-                label: "Profile",
-                icon: <UserOutlined />
-            });
+            baseItems.push(
+                {
+                    key: "profile",
+                    label: "Profile",
+                    icon: <UserOutlined />
+                },
+                {
+                    key: "friends",
+                    label: "Friends",
+                    icon: <UserOutlined />
+                }
+            );
         }
 
         return baseItems;
     };
 
     const userMenuItems = [
-        {
-            key: "profile",
-            label: "Profile",
-            icon: <UserOutlined />
-        },
-        {
-            key: "logout",
-            label: "Logout",
-            icon: <LogoutOutlined />
-        },
+        { key: "profile", label: "Profile", icon: <UserOutlined /> },
+        { key: "logout", label: "Logout", icon: <LogoutOutlined /> }
     ];
 
     const handleUserMenuClick = async ({ key }) => {
@@ -76,14 +71,20 @@ const MainLayout = () => {
 
     return (
         <div style={{ display: "flex", minHeight: "100vh", width: "100vw" }}>
-            {/* Sidebar */}
+            {/* Sidebar (fixed) */}
             <div
                 style={{
                     width: isCollapsed ? 80 : 250,
                     backgroundColor: "#001529",
                     transition: "width 0.3s",
                     flexShrink: 0,
-                    position: "relative"
+                    position: "fixed",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    height: "100vh",
+                    overflow: "hidden",
+                    zIndex: 1000 // High zIndex to keep sidebar on top
                 }}
             >
                 {/* Logo/Brand area */}
@@ -93,23 +94,17 @@ const MainLayout = () => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "rgba(255,255,255,0.1)",
+                        background: "white",
                         margin: "16px",
-                        borderRadius: "8px"
+                        borderRadius: "8px",
+                        overflow: "hidden"
                     }}
                 >
-                    {!isCollapsed ? (
-                        <h3 style={{ color: "white", margin: 0 }}>SPLURGE</h3>
-                    ) : (
-                        <div
-                            style={{
-                                width: 32,
-                                height: 32,
-                                background: "#1890ff",
-                                borderRadius: "50%"
-                            }}
-                        />
-                    )}
+                    <img
+                        src="/Logo.svg"
+                        alt="SPLURGE Logo"
+                        style={{ height: isCollapsed ? 32 : 40, objectFit: "contain" }}
+                    />
                 </div>
 
                 <Menu
@@ -121,6 +116,7 @@ const MainLayout = () => {
                         navigate(`/${key}`);
                     }}
                     style={{ border: "none" }}
+                    inlineCollapsed={isCollapsed}
                 />
 
                 {/* Collapse button */}
@@ -141,16 +137,20 @@ const MainLayout = () => {
                 </div>
             </div>
 
-            {/* Main content area */}
+
+            {/* Main content area (shifted to the right of sidebar) */}
             <div
                 style={{
                     flex: 1,
                     display: "flex",
                     flexDirection: "column",
+                    // Use a subtle background, but the GamePage will manage the main viewport background
                     backgroundColor: "#f5f5f5",
                     minWidth: 0,
                     minHeight: "100vh",
-                    overflow: "hidden"
+                    marginLeft: isCollapsed ? 80 : 250, // Offset for fixed sidebar
+                    transition: "margin-left 0.3s",
+                    overflow: "hidden" // Keep this for overall layout integrity
                 }}
             >
                 {/* Header */}
@@ -163,7 +163,7 @@ const MainLayout = () => {
                         justifyContent: "space-between",
                         alignItems: "center",
                         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                        zIndex: 1,
+                        zIndex: 10, // Ensure header floats above GamePage fixed elements
                         flexShrink: 0
                     }}
                 >
@@ -171,7 +171,6 @@ const MainLayout = () => {
                         {currentPath.charAt(0).toUpperCase() + currentPath.slice(1)}
                     </h2>
 
-                    {/* Only show user menu if authenticated */}
                     {isAuthenticated ? (
                         <Dropdown
                             menu={{
@@ -193,11 +192,13 @@ const MainLayout = () => {
                                 <span style={{ marginLeft: 8 }}>
                                     {username || "User"}
                                     {role === "Admin" && (
-                                        <span style={{
-                                            marginLeft: 4,
-                                            fontSize: "12px",
-                                            color: "#1890ff"
-                                        }}>
+                                        <span
+                                            style={{
+                                                marginLeft: 4,
+                                                fontSize: "12px",
+                                                color: "#1890ff"
+                                            }}
+                                        >
                                             (Admin)
                                         </span>
                                     )}
@@ -211,13 +212,13 @@ const MainLayout = () => {
                     )}
                 </div>
 
-                {/* Content (card style) */}
+                {/* Content - CRITICAL CHANGES HERE */}
                 <div
                     style={{
                         flex: 1,
-                        padding: "24px",
-                        background: "#fff",
-                        overflow: "auto",
+                        padding: "0", // 🛑 Set padding to 0. GamePage manages its own spacing via __wrapper class.
+                        background: "transparent", // 🛑 Set background to transparent to allow GamePage styles to show.
+                        overflow: "visible", // 🛑 Allow child content (GamePage) to manage its own scrolling/fixed elements.
                         width: "100%",
                         minHeight: 0
                     }}
@@ -232,7 +233,8 @@ const MainLayout = () => {
                         background: "transparent",
                         color: "#666",
                         padding: "12px 24px",
-                        flexShrink: 0
+                        flexShrink: 0,
+                        zIndex: 10 // Ensure footer floats above GamePage fixed elements
                     }}
                 >
                     <span>© 2025 SPLURGE. All rights reserved.</span>

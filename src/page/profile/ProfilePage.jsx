@@ -1,91 +1,93 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Avatar, Button, Card, Tabs, List, Form, Input, message, Spin } from "antd";
+import { Avatar, Card, Tabs, List, Spin, message, Button, Form, Input, Space } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import API from "../../api/axios";
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 const { TabPane } = Tabs;
 
 const ProfilePage = () => {
+    const { username: routeUsername } = useParams(); // /profile/:username
     const [profile, setProfile] = useState(null);
     const [games, setGames] = useState([]);
-    const [friends, setFriends] = useState([]); // Placeholder for future
     const [loading, setLoading] = useState(true);
+    const [relationship, setRelationship] = useState(null); // ⬅ store friendship status
     const [form] = Form.useForm();
-    const location = useLocation();
+    const [tabKey, setTabKey] = useState("1");
 
-    // Fetch profile and games
     const fetchProfileAndGames = useCallback(async () => {
         setLoading(true);
         try {
-            const profileRes = await API.get("/api/profile");
-            setProfile(profileRes.data);
-            const gamesRes = await API.get("/api/users/me/games");
-            setGames(gamesRes.data);
+            if (routeUsername) {
+                // Other user
+                const profileRes = await API.get(`/api/users/${routeUsername}`);
+                setProfile(profileRes.data);
+
+                const gamesRes = await API.get(`/api/users/${routeUsername}/games`);
+                setGames(gamesRes.data);
+
+                // Fetch friendship status
+                const relationRes = await API.get(`/api/friends/status/${routeUsername}`);
+                setRelationship(relationRes.data); // { status: "none" | "pending" | "friends", requestId? }
+            } else {
+                // Current user
+                const profileRes = await API.get("/api/profile");
+                setProfile(profileRes.data);
+
+                const gamesRes = await API.get("/api/users/me/games");
+                setGames(gamesRes.data);
+            }
         } catch (err) {
             message.error("Failed to load profile or games");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [routeUsername]);
 
-    // Fetch friends (stub)
-    const fetchFriends = useCallback(async () => {
-        try {
-            const res = await API.get("/api/profile/friends");
-            if (res.status === 501) {
-                setFriends([]);
-            } else {
-                setFriends(res.data);
-            }
-        } catch {
-            setFriends([]);
-        }
-    }, []);
-
-    // Listen for add-to-profile event
     useEffect(() => {
-        const handleAddToProfile = async (e) => {
-            const game = e.detail.game;
-            try {
-                const res = await API.post("/api/profile/add", { gameId: game.gameId });
-                if (res.status === 501) {
-                    message.info("Add to profile is not implemented yet.");
-                } else {
-                    message.success("Game added to your library!");
-                    fetchProfileAndGames();
-                }
-            } catch (err) {
-                message.error("Failed to add game to profile");
-            }
-        };
-        window.addEventListener("add-to-profile", handleAddToProfile);
-        return () => window.removeEventListener("add-to-profile", handleAddToProfile);
+        fetchProfileAndGames();
     }, [fetchProfileAndGames]);
 
-    useEffect(() => {
-        fetchProfileAndGames();
-        fetchFriends();
-    }, [fetchProfileAndGames, fetchFriends]);
-
-    // Refresh library when navigating to profile page
-    useEffect(() => {
-        fetchProfileAndGames();
-    }, [location.pathname, fetchProfileAndGames]);
-
-    // Edit profile handler (stub)
     const handleEditProfile = async (values) => {
         try {
             const res = await API.put("/api/profile/edit", values);
-            if (res.status === 501) {
-                message.info("Edit profile is not implemented yet.");
-            } else {
-                setProfile(res.data);
-                message.success("Profile updated!");
-                fetchProfileAndGames();
-            }
+            setProfile(res.data);
+            message.success("Profile updated!");
+            fetchProfileAndGames();
+            setTabKey("1");
         } catch {
             message.error("Failed to update profile");
+        }
+    };
+
+    // 🔹 Friendship actions
+    const sendRequest = async () => {
+        try {
+            await API.post(`/api/friends/add/${routeUsername}`);
+            message.success("Friend request sent!");
+            fetchProfileAndGames();
+        } catch (err) {
+            message.error(err.response?.data?.error || "Failed to send request");
+        }
+    };
+
+    const cancelRequest = async () => {
+        try {
+            await API.post(`/api/friends/reject/${relationship.requestId}`);
+            message.success("Request cancelled");
+            fetchProfileAndGames();
+        } catch {
+            message.error("Failed to cancel request");
+        }
+    };
+
+    const unfriend = async () => {
+        try {
+            await API.post(`/api/friends/remove/${routeUsername}`);
+            message.success("Friend removed");
+            fetchProfileAndGames();
+        } catch {
+            message.error("Failed to unfriend");
         }
     };
 
@@ -103,18 +105,40 @@ const ProfilePage = () => {
                         <h2 style={{ margin: 0 }}>{profile.username}</h2>
                         <p style={{ margin: 0, color: "gray" }}>{profile.bio}</p>
                     </div>
+
                     <div style={{ marginLeft: "auto" }}>
-                        <Button type="primary" onClick={() => form.setFieldsValue(profile)}>
-                            Edit Profile
-                        </Button>
+                        {!routeUsername ? (
+                            // ✅ Own profile
+                            <Button
+                                type="primary"
+                                onClick={() => {
+                                    form.setFieldsValue(profile);
+                                    setTabKey("2");
+                                }}
+                            >
+                                Edit Profile
+                            </Button>
+                        ) : (
+                            // ✅ Other user's profile → friendship actions
+                            <Space>
+                                {relationship?.status === "none" && (
+                                    <Button type="primary" onClick={sendRequest}>Add Friend</Button>
+                                )}
+                                {relationship?.status === "pending" && (
+                                    <Button danger onClick={cancelRequest}>Cancel Request</Button>
+                                )}
+                                {relationship?.status === "friends" && (
+                                    <Button danger onClick={unfriend}>Unfriend</Button>
+                                )}
+                            </Space>
+                        )}
                     </div>
                 </div>
             </Card>
 
             {/* Tabs Section */}
             <Card>
-                <Tabs defaultActiveKey="1">
-                    {/* Library Tab */}
+                <Tabs activeKey={tabKey} onChange={setTabKey}>
                     <TabPane tab="Library" key="1">
                         <List
                             itemLayout="horizontal"
@@ -122,7 +146,22 @@ const ProfilePage = () => {
                             renderItem={(game) => (
                                 <List.Item>
                                     <List.Item.Meta
-                                        avatar={<img src={game.headerImageUrl ? `http://localhost:5012${game.headerImageUrl}` : "https://via.placeholder.com/60x80"} alt={game.name} style={{ width: 60, height: 80, objectFit: "cover", borderRadius: 4 }} />}
+                                        avatar={
+                                            <img
+                                                src={
+                                                    game.headerImageUrl
+                                                        ? `http://localhost:5012${game.headerImageUrl}`
+                                                        : "https://via.placeholder.com/60x80"
+                                                }
+                                                alt={game.name}
+                                                style={{
+                                                    width: 60,
+                                                    height: 80,
+                                                    objectFit: "cover",
+                                                    borderRadius: 4
+                                                }}
+                                            />
+                                        }
                                         title={game.name}
                                         description={`Playtime: ${game.playtime || "0h"}`}
                                     />
@@ -131,43 +170,26 @@ const ProfilePage = () => {
                         />
                     </TabPane>
 
-                    {/* Friends Tab */}
-                    <TabPane tab="Friends" key="2">
-                        {friends.length === 0 ? (
-                            <div style={{ color: "gray" }}>Friends feature is not implemented yet.</div>
-                        ) : (
-                            <List
-                                itemLayout="horizontal"
-                                dataSource={friends}
-                                renderItem={(friend) => (
-                                    <List.Item>
-                                        <List.Item.Meta
-                                            avatar={<Avatar icon={<UserOutlined />} />}
-                                            title={friend.name}
-                                            description={friend.status}
-                                        />
-                                    </List.Item>
-                                )}
-                            />
-                        )}
-                    </TabPane>
-
-                    {/* Edit Profile Tab */}
-                    <TabPane tab="Edit Profile" key="3">
-                        <Form
-                            layout="vertical"
-                            form={form}
-                            initialValues={profile}
-                            onFinish={handleEditProfile}
-                        >
-                            <Form.Item label="Username" name="username" rules={[{ required: true }]}> <Input /> </Form.Item>
-                            <Form.Item label="Bio" name="bio"> <Input.TextArea rows={3} /> </Form.Item>
-                            <Form.Item label="Email" name="email"> <Input /> </Form.Item>
-                            <Form.Item>
-                                <Button type="primary" htmlType="submit">Save Changes</Button>
-                            </Form.Item>
-                        </Form>
-                    </TabPane>
+                    {!routeUsername && (
+                        <TabPane tab="Edit Profile" key="2">
+                            <Form layout="vertical" form={form} initialValues={profile} onFinish={handleEditProfile}>
+                                <Form.Item label="Username" name="username" rules={[{ required: true }]}>
+                                    <Input />
+                                </Form.Item>
+                                <Form.Item label="Bio" name="bio">
+                                    <Input.TextArea rows={3} />
+                                </Form.Item>
+                                <Form.Item label="Email" name="email">
+                                    <Input />
+                                </Form.Item>
+                                <Form.Item>
+                                    <Button type="primary" htmlType="submit">
+                                        Save Changes
+                                    </Button>
+                                </Form.Item>
+                            </Form>
+                        </TabPane>
+                    )}
                 </Tabs>
             </Card>
         </div>
